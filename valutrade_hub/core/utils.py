@@ -21,11 +21,9 @@ def get_portfolios():
     with open("data/portfolios.json", "r") as f:
         portfolios_json = json.load(f)
     portfolios = {}
-    print(portfolios_json)
     for portfolio in portfolios_json:
         wallets = {}
         for wallet in portfolio["wallets"]:
-            print(wallet)
             wallets[wallet] = Wallet(wallet, portfolio["wallets"][wallet]["balance"])
         portfolios[portfolio["user_id"]] = Portfolio(portfolio["user_id"], wallets)
 
@@ -45,4 +43,11 @@ def get_exchange_rates():
 
 def exchange(from_currency: str, to_currency: str, amount: float):
     exchange_rates = get_exchange_rates()
-    return amount*exchange_rates[from_currency]/exchange_rates[to_currency]
+    return amount*exchange_rates["currencies"][from_currency]/exchange_rates["currencies"][to_currency]
+
+
+def validate(currency: str) -> str:
+    if currency.upper() not in get_exchange_rates()["currencies"]:
+        raise ValueError("Invalid currency")
+
+    return currency.upper()

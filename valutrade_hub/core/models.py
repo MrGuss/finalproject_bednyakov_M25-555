@@ -2,25 +2,25 @@ from datetime import datetime
 from hashlib import sha256
 from copy import deepcopy
 
-EXCHANGE_RATES = {
-    "USD": 1,
-    "EUR": 0.9,
-    "BTC": 0.00001
-}
+EXCHANGE_RATES = {"USD": 1, "EUR": 0.9, "BTC": 0.00001}
 
 
 class User:
-    def __init__(self,
-                 user_id: int,
-                 username: str,
-                 registration_date: str | None = None,
-                 hashed_password: str | None = None,
-                 salt: str | None = None):
+    def __init__(
+        self,
+        user_id: int,
+        username: str,
+        registration_date: str | None = None,
+        hashed_password: str | None = None,
+        salt: str | None = None,
+    ):
         self._user_id = user_id
         self._username = username
         self._hashed_password = hashed_password
         self._salt = salt
-        self._registration_date = registration_date or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self._registration_date = registration_date or datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
     def get_user_info(self):
         return {
@@ -28,7 +28,7 @@ class User:
             "username": self._username,
             "registration_date": self._registration_date,
             "salt": self._salt,
-            "hashed_password": self._hashed_password
+            "hashed_password": self._hashed_password,
         }
 
     def change_password(self, password: str, salt: str):
@@ -41,7 +41,10 @@ class User:
     def verify_password(self, password: str):
         if not self._hashed_password or not self._salt:
             return False
-        return self._hashed_password == sha256((password + self._salt).encode("utf-8")).hexdigest()
+        return (
+            self._hashed_password
+            == sha256((password + self._salt).encode("utf-8")).hexdigest()
+        )
 
     @property
     def user_id(self):
@@ -91,11 +94,7 @@ class Wallet:
         return self._balance
 
     def get_wallet_info(self):
-        return {
-            self.currency_code: {
-                "balance": self._balance
-            }
-        }
+        return {"currency_code": self.currency_code, "balance": self._balance}
 
     @property
     def balance(self):
@@ -123,7 +122,11 @@ class Portfolio:
     def get_total_value(self, base_currency: str):
         total_value = 0
         for wallet in self._wallets.values():
-            total_value += wallet.balance*self._exchange_tates[base_currency]/self._exchange_tates[wallet.currency_code]
+            total_value += (
+                wallet.balance
+                * self._exchange_tates[base_currency]
+                / self._exchange_tates[wallet.currency_code]
+            )
         return total_value
 
     def get_wallet(self, currency_code):
@@ -132,7 +135,10 @@ class Portfolio:
     def get_portfolio_info(self) -> dict:
         return {
             "user_id": self._user_id,
-            "wallets": [self._wallets[wallet].get_wallet_info() for wallet in self._wallets]
+            "wallets": {
+                wallet: self.get_wallet(wallet).get_wallet_info()
+                for wallet in self._wallets
+            },
         }
 
     @property

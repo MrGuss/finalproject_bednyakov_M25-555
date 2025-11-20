@@ -32,19 +32,21 @@ class Command:
                 try:
                     value = arg_object.value_type(cmd[index + 1])
                 except ValueError:
-                    raise ValueError(f"Argument {arg} must be of type {arg_object.value_type.__name__}")
+                    raise ValueError(f"Argument {arg_object.name} must be of type {arg_object.value_type.__name__}")
+                except IndexError:
+                    raise ValueError(f"Argument for {arg_object.name} cannot be empty")
                 arg_object.value = value
                 cmd.pop(index)
                 cmd.pop(index)
             else:
                 if arg_object.required:
-                    raise ValueError(f"Argument {arg} is required for command {self._cmd}")
+                    raise ValueError(f"Argument {arg_object.name} is required for command {self.cmd}")
                 else:
                     arg_object.value = None
                     arg_object.parsed = True
 
         if len(cmd) > 0:
-            raise ValueError(f"Unknown arguments {', '.join(cmd)} for command {self._cmd}")
+            raise ValueError(f"Unknown arguments {', '.join(cmd)} for command {self.cmd}")
 
     def __getattr__(self, name):
         try:
@@ -97,14 +99,13 @@ parser.sell.add_arg("--currency", True, str)
 parser.sell.add_arg("--amount", True, float)
 
 parser.add_command("get_rate")
-parser.get_rate.add_arg("--from", True, str)
-parser.get_rate.add_arg("--to", True, str)
+parser.get_rate.add_arg("--from_cur", True, str)
+parser.get_rate.add_arg("--to_cur", True, str)
 
 
 def process_comand(cmd: str):
-    parser.parse(cmd)
-
     try:
+        parser.parse(cmd)
         parsed_command = parser.parsed_command
         if parsed_command is not None:
             if parsed_command.cmd == "register":
@@ -118,7 +119,7 @@ def process_comand(cmd: str):
             elif parsed_command.cmd == "sell":
                 sell(parsed_command.currency, parsed_command.amount)
             elif parsed_command.cmd == "get_rate":
-                get_rate(parsed_command.from_currency, parsed_command.to_currency)
+                get_rate(parsed_command.from_cur, parsed_command.to_cur)
             else:
                 print("Unknown command")
         else:
