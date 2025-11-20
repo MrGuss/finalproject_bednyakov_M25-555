@@ -1,0 +1,37 @@
+[project]
+name = "final"
+version = "0.1.0"
+description = "final"
+authors = [
+    {name = "MrGuss",email = "bednyakov04@mail.ru"}
+]
+requires-python = ">=3.10"
+dependencies = [
+    "prompt (>=0.4.1,<0.5.0)"
+]
+
+[tool.poetry]
+packages = [
+    { include = "valutrade_hub" },
+]
+
+[tool.poetry.scripts]
+project = "valutrade_hub.main:main" 
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120 # I prefer 120, and 88 is not pep8 compliant too
+target-version = "py310"
+exclude = [".venv", "dist", "__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = []
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.14.3,<0.15.0)"
+]
