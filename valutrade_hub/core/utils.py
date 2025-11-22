@@ -1,5 +1,6 @@
 import json
 from .models import User, Portfolio, Wallet
+from .exceptions import ApiRequestError, CurrencyNotFoundError
 
 
 def get_users():
@@ -36,9 +37,12 @@ def save_portfolios(portfolios: dict[int, Portfolio]):
 
 
 def get_exchange_rates():
-    with open("data/rates.json", "r") as f:
-        exchange_rates = json.load(f)
-    return exchange_rates
+    try:
+        with open("data/rates.json", "r") as f:
+            exchange_rates = json.load(f)
+        return exchange_rates
+    except FileNotFoundError:
+        raise ApiRequestError("Exchange rates not found")
 
 
 def exchange(from_currency: str, to_currency: str, amount: float):
@@ -48,6 +52,6 @@ def exchange(from_currency: str, to_currency: str, amount: float):
 
 def validate(currency: str) -> str:
     if currency.upper() not in get_exchange_rates()["currencies"]:
-        raise ValueError("Invalid currency")
+        raise CurrencyNotFoundError(currency.upper())
 
     return currency.upper()

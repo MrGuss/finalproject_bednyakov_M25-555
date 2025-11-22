@@ -7,14 +7,6 @@ session_user_id = None
 
 
 def register(username: str, password: str) -> None:
-    """
-    1.    Проверить уникальность username в users.json.
-    2.    Сгенерировать user_id (например, автоинкремент).
-    3.    Захешировать пароль (делайте односторонний псевдо-хеш (например, hashlib.sha256(password + salt)), соль храните рядом.).
-    4.    Сохранить пользователя в users.json.
-    5.    Создать пустой портфель (portfolios.json: user_id + пустой словарь кошельков).
-    6.    Вернуть сообщение об успехе.
-    """
     users = get_users()
     for user_id in users:
         if users[user_id].username == username:
@@ -61,14 +53,6 @@ def show_portfolio(base_currency: str | None = None):
 
 
 def buy(currency: str, amount: float):
-    """
-    1.    Проверить логин.
-    2.    Валидировать currency (формат) и amount > 0.
-    3.    Если в портфеле нет такого кошелька — автоматически создать (как делает add_currency).
-    4.    Увеличить баланс кошелька на amount.
-    *    Получить текущий курс currency → base.
-    *    Посчитать стоимость amount * rate и вывести в итог.
-    """
     if not session_user_id:
         raise ValueError("You are not logged in")
 
@@ -129,10 +113,6 @@ def get_rate(from_currency: str, to_currency: str):
     to_currency = validate(to_currency)
 
     exchange_rates = get_exchange_rates()
-    """
-    Курс USD→BTC: 0.00001685 (обновлено: 2025-10-09 00:03:22)
-    Обратный курс BTC→USD: 59337.21
-    """
 
     print(f"Курс {from_currency}→{to_currency}: {exchange_rates['currencies'][from_currency]/exchange_rates['currencies'][to_currency]}"
           f" ({exchange_rates['updated']})")

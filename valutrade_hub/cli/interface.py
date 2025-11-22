@@ -1,5 +1,6 @@
 import shlex
 from ..core.usecases import register, login, show_portfolio, buy, sell, get_rate
+from ..core.exceptions import ApiRequestError, InsufficientFundsError, CurrencyNotFoundError
 
 
 class Arg:
@@ -126,3 +127,11 @@ def process_comand(cmd: str):
             print("No parsed command found")
     except ValueError as e:
         print("Error:", e)
+    except ApiRequestError as e:
+        print("Error:", e)
+        print("Try again later")
+    except InsufficientFundsError as e:
+        print("Error:", e)
+    except CurrencyNotFoundError as e:
+        print("Error:", e)
+        print("Try command 'get-rate' to see all available currencies")

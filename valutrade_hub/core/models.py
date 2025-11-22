@@ -1,8 +1,7 @@
 from datetime import datetime
 from hashlib import sha256
 from copy import deepcopy
-
-EXCHANGE_RATES = {"USD": 1, "EUR": 0.9, "BTC": 0.00001}
+from .exceptions import InsufficientFundsError
 
 
 class User:
@@ -87,7 +86,8 @@ class Wallet:
         if amount < 0:
             raise ValueError("Amount cannot be negative")
         if amount > self._balance:
-            raise ValueError("Not enough balance")
+            raise InsufficientFundsError(
+                available_funds=self._balance, required_funds=amount, code=self.currency_code)
         self._balance -= amount
 
     def get_balance_info(self):
@@ -113,19 +113,18 @@ class Portfolio:
     def __init__(self, user_id: int, wallets: dict[str, Wallet]):
         self._user_id = user_id
         self._wallets = wallets
-        self._exchange_tates = EXCHANGE_RATES
 
     def add_currency(self, currency_code: str):
         if currency_code not in self._wallets:
             self._wallets[currency_code] = Wallet(currency_code, 0)
 
-    def get_total_value(self, base_currency: str):
+    def get_total_value(self, base_currency: str, exchange_rates: dict):
         total_value = 0
         for wallet in self._wallets.values():
             total_value += (
                 wallet.balance
-                * self._exchange_tates[base_currency]
-                / self._exchange_tates[wallet.currency_code]
+                * exchange_rates[base_currency]
+                / exchange_rates[wallet.currency_code]
             )
         return total_value
 
@@ -142,9 +141,9 @@ class Portfolio:
         }
 
     @property
-    def user(self):
+    def user(self) -> int:
         return self._user_id
 
     @property
-    def wallets(self):
+    def wallets(self) -> dict[str, Wallet]:
         return deepcopy(self._wallets)
