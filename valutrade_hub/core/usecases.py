@@ -2,8 +2,13 @@ from .utils import get_users, save_users, get_exchange_rates, get_portfolios, ex
 from random import choice
 import string
 from .models import User, Portfolio
+from ..infra.settings import SettingsLoader
+from ..decorators import log_action
+
 
 session_user_id = None
+
+settings = SettingsLoader("data/config.json")
 
 
 def register(username: str, password: str) -> None:
@@ -19,7 +24,7 @@ def register(username: str, password: str) -> None:
     save_users(users)
 
 
-def login(username: str, password: str):
+def login(username: str, password: str) -> None:
     global session_user_id
     if session_user_id:
         raise ValueError("You are already logged in")
@@ -33,12 +38,9 @@ def login(username: str, password: str):
     raise ValueError("Invalid username or password")
 
 
-def show_portfolio(base_currency: str | None = None):
+def show_portfolio(base_currency: str | None = None) -> None:
     if not session_user_id:
         raise ValueError("You are not logged in")
-
-    if not base_currency:
-        base_currency = "USD"
 
     base_currency = validate(base_currency)
 
@@ -52,7 +54,7 @@ def show_portfolio(base_currency: str | None = None):
         print(wallet.balance, wallet.currency_code, "->", exchange(wallet.currency_code, base_currency, wallet.balance), base_currency)
 
 
-def buy(currency: str, amount: float):
+def buy(currency: str, amount: float) -> None:
     if not session_user_id:
         raise ValueError("You are not logged in")
 
@@ -79,7 +81,7 @@ def buy(currency: str, amount: float):
     save_portfolios(portfolios)
 
 
-def sell(currency: str, amount: float):
+def sell(currency: str, amount: float) -> None:
     if not session_user_id:
         raise ValueError("You are not logged in")
 
@@ -107,7 +109,7 @@ def sell(currency: str, amount: float):
     save_portfolios(portfolios)
 
 
-def get_rate(from_currency: str, to_currency: str):
+def get_rate(from_currency: str, to_currency: str) -> None:
 
     from_currency = validate(from_currency)
     to_currency = validate(to_currency)
@@ -117,3 +119,15 @@ def get_rate(from_currency: str, to_currency: str):
     print(f"Курс {from_currency}→{to_currency}: {exchange_rates['currencies'][from_currency]/exchange_rates['currencies'][to_currency]}"
           f" ({exchange_rates['updated']})")
     print(f"Обратный курс {to_currency}→{from_currency}: {exchange_rates['currencies'][to_currency]/exchange_rates['currencies'][from_currency]}")
+
+
+def help_show() -> None:
+    print("Available commands:")
+    print("register --username <username> --password <password>")
+    print("login --username <username> --password <password>")
+    print("show_portfolio --base <currency>")
+    print("buy --currency <currency> --amount <amount>")
+    print("sell --currency <currency> --amount <amount>")
+    print("get_rate --from_cur <currency> --to_cur <currency>")
+    print("exit")
+    print("help")

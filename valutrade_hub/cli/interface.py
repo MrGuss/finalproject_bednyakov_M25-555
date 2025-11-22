@@ -1,5 +1,5 @@
 import shlex
-from ..core.usecases import register, login, show_portfolio, buy, sell, get_rate
+from ..core.usecases import register, login, show_portfolio, buy, sell, get_rate, help_show
 from ..core.exceptions import ApiRequestError, InsufficientFundsError, CurrencyNotFoundError
 
 
@@ -67,6 +67,8 @@ class DummyParser:
     def parse(self, cmd: str):
         result = shlex.split(cmd)
         command = result[0]
+        if command not in self._commands:
+            raise ValueError(f"Unknown command {command}")
         if command in self._commands:
             self._commands[command].parse_args(result[1:])
         self.parsed_command = self._commands[command]
@@ -103,6 +105,10 @@ parser.add_command("get_rate")
 parser.get_rate.add_arg("--from_cur", True, str)
 parser.get_rate.add_arg("--to_cur", True, str)
 
+parser.add_command("help")
+
+parser.add_command("exit")
+
 
 def process_comand(cmd: str):
     try:
@@ -116,11 +122,15 @@ def process_comand(cmd: str):
             elif parsed_command.cmd == "show_portfolio":
                 show_portfolio(parsed_command.base)
             elif parsed_command.cmd == "buy":
-                buy(parsed_command.currency, parsed_command.amount)
+                buy(currency=parsed_command.currency, amount=parsed_command.amount)
             elif parsed_command.cmd == "sell":
                 sell(parsed_command.currency, parsed_command.amount)
             elif parsed_command.cmd == "get_rate":
                 get_rate(parsed_command.from_cur, parsed_command.to_cur)
+            elif parsed_command.cmd == "exit":
+                exit()
+            elif parsed_command.cmd == "help":
+                help_show()
             else:
                 print("Unknown command")
         else:
