@@ -1,10 +1,17 @@
-from .utils import get_users, save_users, get_exchange_rates, get_portfolios, exchange, validate, save_portfolios
+from valutrade_hub.core.exceptions import InsufficientFundsError
+from .utils import (
+    get_users,
+    save_users,
+    get_exchange_rates,
+    get_portfolios,
+    exchange,
+    save_portfolios,
+)
 from random import choice
 import string
 from .models import User, Portfolio
 from ..infra.settings import SettingsLoader
-from ..decorators import log_action
-
+from .currencies import get_currency
 
 session_user_id = None
 
@@ -18,7 +25,12 @@ def register(username: str, password: str) -> None:
             raise ValueError("Username already exists")
     user_id = max(users) + 1
     user = User(user_id, username)
-    salt = "".join([choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(10)])
+    salt = "".join(
+        [
+            choice(string.ascii_letters + string.digits + string.punctuation)
+            for _ in range(10)
+        ]
+    )
     user.change_password(password, salt)
     users[user_id] = user
     save_users(users)
@@ -31,7 +43,9 @@ def login(username: str, password: str) -> None:
 
     users = get_users()
     for user_id in users:
-        if users[user_id].username == username and users[user_id].verify_password(password):
+        if users[user_id].username == username and users[user_id].verify_password(
+            password
+        ):
             session_user_id = user_id
             return
 
@@ -42,7 +56,7 @@ def show_portfolio(base_currency: str | None = None) -> None:
     if not session_user_id:
         raise ValueError("You are not logged in")
 
-    base_currency = validate(base_currency)
+    base_currency_object = get_currency(base_currency)
 
     portfolios = get_portfolios()
     if session_user_id not in portfolios:
@@ -51,15 +65,21 @@ def show_portfolio(base_currency: str | None = None) -> None:
     portfolio = portfolios[session_user_id]
 
     for wallet in portfolio.wallets.values():
-        print(wallet.balance, wallet.currency_code, "->", exchange(wallet.currency_code, base_currency, wallet.balance), base_currency)
+        print(
+            wallet.balance,
+            wallet.currency_code,
+            "->",
+            exchange(wallet.currency_code, base_currency_object.name, wallet.balance),
+            base_currency,
+        )
 
 
 def buy(currency: str, amount: float) -> None:
     if not session_user_id:
         raise ValueError("You are not logged in")
 
-    currency = validate(currency)
-    if amount < 0:
+    currency_object = get_currency(currency)
+    if amount <= 0:
         raise ValueError("Amount cannot be negative")
 
     portfolios = get_portfolios()
@@ -69,14 +89,19 @@ def buy(currency: str, amount: float) -> None:
     else:
         portfolio = portfolios[session_user_id]
 
-    if currency not in portfolio.wallets:
-        portfolio.add_currency(currency)
+    if currency_object.code not in portfolio.wallets:
+        portfolio.add_currency(currency_object.code)
 
-    before_amount = portfolio.get_wallet(currency).balance
-    portfolio.get_wallet(currency).deposit(amount)
-    print(f"Покупка выполнена: {amount} {currency} по курсу {get_exchange_rates()['currencies'][currency]} USD/{currency}")
+    before_amount = portfolio.get_wallet(currency_object.code).balance
+    portfolio.get_wallet(currency_object.code).deposit(amount)
+    print(
+        f"Покупка выполнена: {amount} {currency_object.code} по курсу "
+        f"{get_exchange_rates()['currencies'][currency_object.code]} USD/{currency_object.code}"
+    )
     print("Изменения в портфеле:")
-    print(f"- {currency}: было {before_amount} → стало {portfolio.get_wallet(currency).balance}")
+    print(
+        f"- {currency_object.code}: было {before_amount} → стало {portfolio.get_wallet(currency_object.code).balance}"
+    )
 
     save_portfolios(portfolios)
 
@@ -85,7 +110,8 @@ def sell(currency: str, amount: float) -> None:
     if not session_user_id:
         raise ValueError("You are not logged in")
 
-    currency = validate(currency)
+    currency_object = get_currency(currency)
+
     if amount < 0:
         raise ValueError("Amount cannot be negative")
 
@@ -96,29 +122,44 @@ def sell(currency: str, amount: float) -> None:
     else:
         portfolio = portfolios[session_user_id]
 
-    if currency not in portfolio.wallets:
-        raise ValueError("You have no such currency in your portfolio")
+    if currency_object.code not in portfolio.wallets:
+        raise InsufficientFundsError(
+            available_funds=0,
+            required_funds=amount,
+            code=currency_object.code,
+        )
 
-    before_amount = portfolio.get_wallet(currency).balance
-    portfolio.get_wallet(currency).withdraw(amount)
+    before_amount = portfolio.get_wallet(currency_object.code).balance
+    portfolio.get_wallet(currency_object.code).withdraw(amount)
 
-    print(f"Продажа выполнена: {amount} {currency} по курсу {get_exchange_rates()['currencies'][currency]} USD/{currency}")
+    print(
+        f"Продажа выполнена: {amount} {currency_object.code} по курсу "
+        f"{get_exchange_rates()['currencies'][currency_object.code]} USD/{currency_object.code}"
+    )
     print("Изменения в портфеле:")
-    print(f"- {currency}: было {before_amount} → стало {portfolio.get_wallet(currency).balance}")
+    print(
+        f"- {currency_object.code}: было {before_amount} → стало {portfolio.get_wallet(currency_object.code).balance}"
+    )
 
     save_portfolios(portfolios)
 
 
 def get_rate(from_currency: str, to_currency: str) -> None:
 
-    from_currency = validate(from_currency)
-    to_currency = validate(to_currency)
+    from_currency_object = get_currency(from_currency)
+    to_currency_object = get_currency(to_currency)
 
     exchange_rates = get_exchange_rates()
 
-    print(f"Курс {from_currency}→{to_currency}: {exchange_rates['currencies'][from_currency]/exchange_rates['currencies'][to_currency]}"
-          f" ({exchange_rates['updated']})")
-    print(f"Обратный курс {to_currency}→{from_currency}: {exchange_rates['currencies'][to_currency]/exchange_rates['currencies'][from_currency]}")
+    print(
+        f"Курс {from_currency_object.code}→{to_currency_object.code}: "
+        f"{exchange_rates['currencies'][from_currency_object.code]/exchange_rates['currencies'][to_currency_object.code]}"
+        f" ({exchange_rates['updated']})"
+    )
+    print(
+        f"Обратный курс {to_currency_object.code}→{from_currency_object.code}: "
+        f"{exchange_rates['currencies'][to_currency_object.code]/exchange_rates['currencies'][from_currency_object.code]}"
+    )
 
 
 def help_show() -> None:

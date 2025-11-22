@@ -1,6 +1,6 @@
 import json
 from .models import User, Portfolio, Wallet
-from .exceptions import ApiRequestError, CurrencyNotFoundError
+from .exceptions import ApiRequestError
 from ..infra.settings import SettingsLoader
 
 settings = SettingsLoader("data/config.json")
@@ -51,12 +51,3 @@ def get_exchange_rates():
 def exchange(from_currency: str, to_currency: str, amount: float):
     exchange_rates = get_exchange_rates()
     return amount*exchange_rates["currencies"][from_currency]/exchange_rates["currencies"][to_currency]
-
-
-def validate(currency: str | None) -> str:
-    if currency is None:
-        return settings.default_base_currency
-    if currency.upper() not in get_exchange_rates()["currencies"]:
-        raise CurrencyNotFoundError(currency.upper())
-
-    return currency.upper()
