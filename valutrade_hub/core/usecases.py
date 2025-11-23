@@ -2,17 +2,16 @@ from valutrade_hub.core.exceptions import InsufficientFundsError
 from .utils import (
     get_users,
     save_users,
-    get_exchange_rates,
     get_portfolios,
-    exchange,
     save_portfolios,
 )
 from random import choice
 import string
 from .models import User, Portfolio
 from ..infra.settings import SettingsLoader
-from .currencies import get_currency
+from .currencies import get_currency, get_cur_rate, exchange, get_exchange_rates
 from ..decorators import log_action
+from ..parser_service.updater import RatesUpdater
 
 session_user_id = None
 
@@ -100,7 +99,7 @@ def buy(currency: str, amount: float) -> None:
     portfolio.get_wallet(currency_object.code).deposit(amount)
     print(
         f"Покупка выполнена: {amount} {currency_object.code} по курсу "
-        f"{get_exchange_rates()['currencies'][currency_object.code]} USD/{currency_object.code}"
+        f"{get_cur_rate(currency_object.code)['rate']} USD/{currency_object.code}"
     )
     print("Изменения в портфеле:")
     print(
@@ -139,7 +138,7 @@ def sell(currency: str, amount: float) -> None:
 
     print(
         f"Продажа выполнена: {amount} {currency_object.code} по курсу "
-        f"{get_exchange_rates()['currencies'][currency_object.code]} USD/{currency_object.code}"
+        f"{get_cur_rate(currency_object.code)['rate']} USD/{currency_object.code}"
     )
     print("Изменения в портфеле:")
     print(
@@ -154,16 +153,14 @@ def get_rate(from_currency: str, to_currency: str) -> None:
     from_currency_object = get_currency(from_currency)
     to_currency_object = get_currency(to_currency)
 
-    exchange_rates = get_exchange_rates()
-
     print(
         f"Курс {from_currency_object.code}→{to_currency_object.code}: "
-        f"{exchange_rates['currencies'][from_currency_object.code]/exchange_rates['currencies'][to_currency_object.code]}"
-        f" ({exchange_rates['updated']})"
+        f"{get_cur_rate(from_currency_object.code)['rate']/get_cur_rate(to_currency_object.code)['rate']}"
+        f" ({get_cur_rate(from_currency_object.code)['rate']})"
     )
     print(
         f"Обратный курс {to_currency_object.code}→{from_currency_object.code}: "
-        f"{exchange_rates['currencies'][to_currency_object.code]/exchange_rates['currencies'][from_currency_object.code]}"
+        f"{get_cur_rate(to_currency_object.code)['rate']/get_cur_rate(from_currency_object.code)['rate']}"
     )
 
 
@@ -177,3 +174,50 @@ def help_show() -> None:
     print("get_rate --from_cur <currency> --to_cur <currency>")
     print("exit")
     print("help")
+
+
+def update_rates(source: str | None = None) -> None:
+    rates_updater = RatesUpdater()
+    print("Updating rates...")
+    rates_updater.run_update(source)
+    print("Rates updated")
+
+
+def show_rates(currency: str | None, top: int | None, base: str | None) -> None:
+    rates = get_exchange_rates()
+
+    if currency and top:
+        raise ValueError("You can't use --currency and --top together")
+
+    if currency:
+        rate = get_cur_rate(currency.upper(), base.upper())
+        print(
+            f"Курс {currency}→{base or settings.default_base_currency}: {rate['rate']} ({rate['updated_at']})"
+        )
+
+    if top:
+        # TODO: FIX THIS PIECE OF CRAP
+        rates = sorted(rates.items(), key=lambda x: x[1]["rate"], reverse=True)
+        rates = rates[:top]
+        print(
+            f"Топ-{top} курсов по курсу {base or settings.default_base_currency}:"
+            "\n".join(
+                [
+                    f"{pair.split('_')[0]}→{base or settings.default_base_currency}:"
+                    f" {get_cur_rate(pair.split('_')[0], base)['rate']} ({rate['updated_at']})"
+                    for pair, rate in rates
+                ]
+            )
+        )
+
+    if not currency and not top:
+        # TODO: FIX THIS PIECE OF CRAP
+        print(
+            "\n".join(
+                [
+                    f"{pair.split('_')[0]}→{base or settings.default_base_currency}:"
+                    f" {get_cur_rate(pair.split('_')[0], base)['rate']} ({rate['updated_at']})"
+                    for pair, rate in rates.items()
+                ]
+            )
+        )#

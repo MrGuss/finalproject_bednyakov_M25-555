@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from .exceptions import CurrencyNotFoundError
+from .exceptions import CurrencyNotFoundError, ApiRequestError
 from ..infra.settings import SettingsLoader
+import json
+
 
 settings = SettingsLoader("data/config.json")
 
@@ -43,18 +45,57 @@ class CryptoCurrency(Currency):
         return f"[CRYPTO] {self._code} - {self._name} (Algorithm: {self._algorithm}, MCAP: {self._market_cap})"
 
 
-CURRENCIES = {
-    "EUR": FiatCurrency("Euro", "EUR", "Europe"),
-    "USD": FiatCurrency("Dollar", "USD", "America"),
-    "BTC": CryptoCurrency("Bitcoin", "BTC", "SHA256", 1.0),
-}
+def get_currencies() -> dict:
+    currencies = {}
+    er = get_exchange_rates()
+    for rate in er["pairs"]:
+        currencies[rate.split("_")[0]] = (
+            FiatCurrency(rate.split("_")[0], rate.split("_")[0], "Unknown")
+            if er["pairs"][rate]["source"] == "exchange_rates"
+            else CryptoCurrency(rate.split("_")[0], rate.split("_")[0], "Unknown", -1)
+        )
+    return currencies
 
 
 def get_currency(code: str | None) -> Currency:
+    currencies = get_currencies()
     if code is None:
         code = settings.default_base_currency
 
-    if code.upper() in CURRENCIES:  # type: ignore
-        return CURRENCIES[code.upper()]  # type: ignore
+    if code.upper() in currencies:  # type: ignore
+        return currencies[code.upper()]  # type: ignore
     else:
         raise CurrencyNotFoundError(code.upper())  # type: ignore
+
+
+def get_exchange_rates() -> dict:
+    try:
+        with open(f"{settings.data_path}/rates.json", "r") as f:
+            exchange_rates = json.load(f)
+        return exchange_rates
+    except FileNotFoundError:
+        raise ApiRequestError("Exchange rates not found")
+
+
+def get_cur_rate(currency: str, base: str | None = None) -> dict:
+    exchange_rates = get_exchange_rates()
+    return {
+        "rate": exchange(currency, base or settings.default_base_currency, 1),
+        "updated_at": exchange_rates["pairs"][
+            f"{currency}_{settings.default_base_currency}"
+        ]["updated_at"],
+    }
+
+
+def exchange(from_currency: str, to_currency: str, amount: float) -> float:
+    exchange_rates = get_exchange_rates()
+    # TODO: FIX HERE
+    return (
+        amount
+        * exchange_rates["pairs"][f"{from_currency}_{settings.default_base_currency}"][
+            "rate"
+        ]
+        / exchange_rates["pairs"][f"{to_currency}_{settings.default_base_currency}"][
+            "rate"
+        ]
+    )

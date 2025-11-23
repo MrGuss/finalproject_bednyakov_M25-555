@@ -1,5 +1,5 @@
 import shlex
-from ..core.usecases import register, login, show_portfolio, buy, sell, get_rate, help_show
+from ..core.usecases import register, login, show_portfolio, buy, sell, get_rate, help_show, update_rates,show_rates
 from ..core.exceptions import ApiRequestError, InsufficientFundsError, CurrencyNotFoundError
 
 
@@ -25,7 +25,7 @@ class Command:
         self.args[arg_name_called] = Arg(arg_name, required, value_type)
 
     def parse_args(self, cmd: list[str]):
-
+        print(self.args)
         for arg in self.args:
             arg_object = self.args[arg]
             if arg_object.name in cmd:
@@ -40,6 +40,7 @@ class Command:
                 cmd.pop(index)
                 cmd.pop(index)
             else:
+                print(arg)
                 if arg_object.required:
                     raise ValueError(f"Argument {arg_object.name} is required for command {self.cmd}")
                 else:
@@ -53,6 +54,7 @@ class Command:
         try:
             return self.args[name].value
         except KeyError:
+            print( self.args)
             raise AttributeError(name)
 
 
@@ -105,6 +107,14 @@ parser.add_command("get_rate")
 parser.get_rate.add_arg("--from_cur", True, str)
 parser.get_rate.add_arg("--to_cur", True, str)
 
+parser.add_command("update_rates")
+parser.update_rates.add_arg("--source", False, str)
+
+parser.add_command("show_rates")
+parser.show_rates.add_arg("--currency", False, str)
+parser.show_rates.add_arg("--top", False, int)
+parser.show_rates.add_arg("--base", False, str)
+
 parser.add_command("help")
 
 parser.add_command("exit")
@@ -131,10 +141,18 @@ def process_comand(cmd: str):
                 exit()
             elif parsed_command.cmd == "help":
                 help_show()
+            elif parsed_command.cmd == "update_rates":
+                update_rates(parsed_command.source)
+            elif parsed_command.cmd == "show_rates":
+                show_rates(parsed_command.currency, parsed_command.top, parsed_command.base)
             else:
                 print("Unknown command")
         else:
             print("No parsed command found")
+    except Exception as e:
+        raise
+
+"""
     except ValueError as e:
         print("Error:", e)
     except ApiRequestError as e:
@@ -145,3 +163,4 @@ def process_comand(cmd: str):
     except CurrencyNotFoundError as e:
         print("Error:", e)
         print("Try command 'get-rate' to see all available currencies")
+"""

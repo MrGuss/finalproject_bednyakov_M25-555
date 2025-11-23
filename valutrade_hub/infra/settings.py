@@ -26,6 +26,9 @@ class SettingsLoader:
         self.log_format = config["log_format"]
         self.log_level = config["log_level"]
         self.log_rotation_size = config["log_rotation_size"]
+        self.mask_keywords = config["mask_keywords"]
+        self.coingeko_api_key = config["coingecko_api_key"]
+        self.exchangerates_api_key = config["exchangerates_api_key"]
 
     def get(self, key: str, default: Any = None):
         try:
