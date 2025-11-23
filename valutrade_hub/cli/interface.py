@@ -116,15 +116,15 @@ def process_comand(cmd: str):
         parsed_command = parser.parsed_command
         if parsed_command is not None:
             if parsed_command.cmd == "register":
-                register(parsed_command.username, parsed_command.password)
+                register(username=parsed_command.username, password=parsed_command.password)
             elif parsed_command.cmd == "login":
-                login(parsed_command.username, parsed_command.password)
+                login(username=parsed_command.username, password=parsed_command.password)
             elif parsed_command.cmd == "show_portfolio":
                 show_portfolio(parsed_command.base)
             elif parsed_command.cmd == "buy":
                 buy(currency=parsed_command.currency, amount=parsed_command.amount)
             elif parsed_command.cmd == "sell":
-                sell(parsed_command.currency, parsed_command.amount)
+                sell(currency=parsed_command.currency, amount=parsed_command.amount)
             elif parsed_command.cmd == "get_rate":
                 get_rate(parsed_command.from_cur, parsed_command.to_cur)
             elif parsed_command.cmd == "exit":

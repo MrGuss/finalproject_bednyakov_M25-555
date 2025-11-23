@@ -12,12 +12,14 @@ import string
 from .models import User, Portfolio
 from ..infra.settings import SettingsLoader
 from .currencies import get_currency
+from ..decorators import log_action
 
 session_user_id = None
 
 settings = SettingsLoader("data/config.json")
 
 
+@log_action
 def register(username: str, password: str) -> None:
     users = get_users()
     for user_id in users:
@@ -36,6 +38,7 @@ def register(username: str, password: str) -> None:
     save_users(users)
 
 
+@log_action
 def login(username: str, password: str) -> None:
     global session_user_id
     if session_user_id:
@@ -74,6 +77,7 @@ def show_portfolio(base_currency: str | None = None) -> None:
         )
 
 
+@log_action
 def buy(currency: str, amount: float) -> None:
     if not session_user_id:
         raise ValueError("You are not logged in")
@@ -106,6 +110,7 @@ def buy(currency: str, amount: float) -> None:
     save_portfolios(portfolios)
 
 
+@log_action
 def sell(currency: str, amount: float) -> None:
     if not session_user_id:
         raise ValueError("You are not logged in")

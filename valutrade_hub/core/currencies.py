@@ -55,6 +55,6 @@ def get_currency(code: str | None) -> Currency:
         code = settings.default_base_currency
 
     if code.upper() in CURRENCIES:  # type: ignore
-        return CURRENCIES[code]  # type: ignore
+        return CURRENCIES[code.upper()]  # type: ignore
     else:
-        raise CurrencyNotFoundError(code)  # type: ignore
+        raise CurrencyNotFoundError(code.upper())  # type: ignore

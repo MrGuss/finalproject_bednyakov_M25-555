@@ -7,62 +7,7 @@ config = LoggingConfig()
 
 
 def log_action(func):
-    def wrapper(*args, **kwargs):
-        print(args, kwargs)
-        timestamp = datetime.now().isoformat()
-        action = func.__name__.upper()
-        username = kwargs.get('username') or kwargs.get('user_id')
-        currency_code = kwargs.get('currency')
-        amount = kwargs.get('amount')
-        rate = kwargs.get('rate')
-        base = kwargs.get('base')
-        log_format = config.format
-        try:
-            func(*args, **kwargs)
-            result_str = 'OK'
-        except Exception as e:
-            result_str = 'ERROR'
-            if log_format == 'json':
-                error_type = type(e).__name__
-                error_message = str(e)
-                log_record = {
-                    'level': 'ERROR',
-                    'timestamp': timestamp,
-                    'action': action,
-                    'username': username,
-                    'currency_code': currency_code,
-                    'amount': amount,
-                    'rate': rate,
-                    'base': base,
-                    'result': result_str,
-                    'error_type': error_type,
-                    'error_message': error_message,
-                }
-            else:
-                log_record = "ERROR {} {} {} {} {} {} {} {} {} {}".format(
-                    timestamp, action, username, currency_code, amount, rate, base, result_str, error_type, error_message
-                )
-
-        log_record = None
-        error_type = None
-        error_message = None
-        if result_str == 'OK':
-            if log_format == 'json':
-                log_record = {
-                    'level': 'INFO',
-                    'timestamp': timestamp,
-                    'action': action,
-                    'username': username,
-                    'currency_code': currency_code,
-                    'amount': amount,
-                    'rate': rate,
-                    'base': base,
-                    'result': result_str,
-                }
-                if 
-            else:
-                log_record = f"INFO {timestamp} {action} {username} {currency_code} {amount} {rate} {base} {result_str}"
-        if result_str == 'ERROR':
+    def log_write(log_record, log_format):
         if log_format == 'json':
             try:
                 file_size_bytes = os.path.getsize(f"{config.log_path}/log.json")
@@ -72,6 +17,42 @@ def log_action(func):
                 os.remove(f"{config.log_path}/log.json")
             with open(f"{config.log_path}/log.json", "a") as f:
                 json.dump(log_record, f)
+                f.write('\n')
         else:
-            print(log_record)
+            log_string = f'[{log_record["level"]}] ' + ' '.join([f"{k}={v}" for k, v in log_record.items() if k != 'level'])
+            print(log_string)
+
+    def wrapper(*args, **kwargs):
+        timestamp = datetime.now().isoformat()
+        action = func.__name__.upper()
+        log_format = config.format
+
+        try:
+            func(*args, **kwargs)
+            log_record = {
+                'level': 'INFO',
+                'timestamp': timestamp,
+                'action': action,
+            }
+            log_record.update(kwargs)
+            for keyword in config.mask_keywords:
+                if keyword in log_record:
+                    log_record[keyword] = '***'
+            log_write(log_record, log_format)
+        except Exception as e:
+            error_type = type(e).__name__
+            error_message = str(e)
+            log_record = {
+                'level': 'ERROR',
+                'timestamp': timestamp,
+                'action': action,
+                'error_type': error_type,
+                'error_message': error_message,
+            }
+            log_record.update(kwargs)
+            for keyword in config.mask_keywords:
+                if keyword in log_record:
+                    log_record[keyword] = '***'
+            log_write(log_record, log_format)
+            raise
     return wrapper
