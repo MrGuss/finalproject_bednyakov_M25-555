@@ -1,5 +1,5 @@
 import shlex
-from ..core.usecases import register, login, show_portfolio, buy, sell, get_rate, help_show, update_rates,show_rates
+from ..core.usecases import register, login, show_portfolio, buy, sell, get_rate, help_show, update_rates, show_rates
 from ..core.exceptions import ApiRequestError, InsufficientFundsError, CurrencyNotFoundError
 
 
@@ -25,7 +25,6 @@ class Command:
         self.args[arg_name_called] = Arg(arg_name, required, value_type)
 
     def parse_args(self, cmd: list[str]):
-        print(self.args)
         for arg in self.args:
             arg_object = self.args[arg]
             if arg_object.name in cmd:
@@ -40,7 +39,6 @@ class Command:
                 cmd.pop(index)
                 cmd.pop(index)
             else:
-                print(arg)
                 if arg_object.required:
                     raise ValueError(f"Argument {arg_object.name} is required for command {self.cmd}")
                 else:
@@ -54,7 +52,6 @@ class Command:
         try:
             return self.args[name].value
         except KeyError:
-            print( self.args)
             raise AttributeError(name)
 
 
@@ -149,10 +146,6 @@ def process_comand(cmd: str):
                 print("Unknown command")
         else:
             print("No parsed command found")
-    except Exception as e:
-        raise
-
-"""
     except ValueError as e:
         print("Error:", e)
     except ApiRequestError as e:
@@ -163,4 +156,3 @@ def process_comand(cmd: str):
     except CurrencyNotFoundError as e:
         print("Error:", e)
         print("Try command 'get-rate' to see all available currencies")
-"""

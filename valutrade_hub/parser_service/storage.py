@@ -9,15 +9,19 @@ def save_rates(rates: dict, request_s: float):
         with open(f"{config.rates_path}", "r") as f:
             rates_json_old = json.load(f)
     except FileNotFoundError:
-        rates_json_old = {}
+        print("File not found")
+        rates_json_old = {"pairs": {}, "last_refresh": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
     except json.JSONDecodeError:
-        rates_json_old = {}
+        print("File not found")
+        rates_json_old = {"pairs": {}, "last_refresh": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
     rates_json = {
         "pairs": rates,
         "last_refresh": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
-    rates_json_old.update(rates_json)
+    rates_json_old["pairs"].update(rates_json["pairs"])
+    rates_json_old["last_refresh"] = rates_json["last_refresh"]
+
     with open(f"{config.rates_path}", "w") as f:
         json.dump(rates_json_old, f, indent=2)
 

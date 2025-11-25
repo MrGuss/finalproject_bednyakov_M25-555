@@ -30,7 +30,7 @@ class ExchangeratesApiClient(BaseApiClient):
         rates_parsed = {}
         for cur in config.FIAT_CURRENCIES:
             try:
-                rates_parsed[f"{cur}_{config.BASE_CURRENCY}"] = rates[cur]
+                rates_parsed[f"{cur}_{config.BASE_CURRENCY}"] = 1/rates[cur]
             except KeyError as e:
                 raise ApiRequestError(f"Cant find currency {e} in response from Exchangerates")
         return rates_parsed

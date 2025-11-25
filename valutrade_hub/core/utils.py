@@ -6,6 +6,14 @@ settings = SettingsLoader("data/config.json")
 
 
 def get_users():
+    try:
+        with open(f"{settings.data_path}/users.json", "r") as f:
+            users_json = json.load(f)
+    except FileNotFoundError:
+        return []
+    except json.decoder.JSONDecodeError:
+        return []
+
     with open(f"{settings.data_path}/users.json", "r") as f:
         users_json = json.load(f)
     users = {}
@@ -21,8 +29,14 @@ def save_users(users):
 
 
 def get_portfolios():
-    with open(f"{settings.data_path}/portfolios.json", "r") as f:
-        portfolios_json = json.load(f)
+    try:
+        with open(f"{settings.data_path}/portfolios.json", "r") as f:
+            portfolios_json = json.load(f)
+    except FileNotFoundError:
+        return {}
+    except json.decoder.JSONDecodeError:
+        return {}
+
     portfolios = {}
     for portfolio in portfolios_json:
         wallets = {}

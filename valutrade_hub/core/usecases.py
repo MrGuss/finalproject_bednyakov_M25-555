@@ -1,3 +1,4 @@
+import datetime
 from valutrade_hub.core.exceptions import InsufficientFundsError
 from .utils import (
     get_users,
@@ -20,12 +21,20 @@ settings = SettingsLoader("data/config.json")
 
 @log_action
 def register(username: str, password: str) -> None:
+    global session_user_id
     users = get_users()
     for user_id in users:
         if users[user_id].username == username:
             raise ValueError("Username already exists")
     user_id = max(users) + 1
     user = User(user_id, username)
+    portfolios = get_portfolios()
+    session_user_id = user_id
+    portfolio = Portfolio(session_user_id, {})
+    portfolio.add_currency(settings.default_base_currency)
+    portfolio.get_wallet(settings.default_base_currency).deposit(1000)
+    portfolios[session_user_id] = portfolio
+    save_portfolios(portfolios)
     salt = "".join(
         [
             choice(string.ascii_letters + string.digits + string.punctuation)
@@ -72,7 +81,7 @@ def show_portfolio(base_currency: str | None = None) -> None:
             wallet.currency_code,
             "->",
             exchange(wallet.currency_code, base_currency_object.name, wallet.balance),
-            base_currency,
+            base_currency_object.code,
         )
 
 
@@ -82,6 +91,10 @@ def buy(currency: str, amount: float) -> None:
         raise ValueError("You are not logged in")
 
     currency_object = get_currency(currency)
+
+    if currency_object.code == settings.default_base_currency:
+        raise ValueError("You cannot buy the base currency")
+
     if amount <= 0:
         raise ValueError("Amount cannot be negative")
 
@@ -96,6 +109,7 @@ def buy(currency: str, amount: float) -> None:
         portfolio.add_currency(currency_object.code)
 
     before_amount = portfolio.get_wallet(currency_object.code).balance
+    portfolio.get_wallet(settings.default_base_currency).withdraw(exchange(currency_object.code, settings.default_base_currency, amount))
     portfolio.get_wallet(currency_object.code).deposit(amount)
     print(
         f"Покупка выполнена: {amount} {currency_object.code} по курсу "
@@ -116,6 +130,9 @@ def sell(currency: str, amount: float) -> None:
 
     currency_object = get_currency(currency)
 
+    if currency_object.code == settings.default_base_currency:
+        raise ValueError("You cannot sell the base currency")
+
     if amount < 0:
         raise ValueError("Amount cannot be negative")
 
@@ -135,7 +152,7 @@ def sell(currency: str, amount: float) -> None:
 
     before_amount = portfolio.get_wallet(currency_object.code).balance
     portfolio.get_wallet(currency_object.code).withdraw(amount)
-
+    portfolio.get_wallet(settings.default_base_currency).deposit(exchange(currency_object.code, settings.default_base_currency, amount))
     print(
         f"Продажа выполнена: {amount} {currency_object.code} по курсу "
         f"{get_cur_rate(currency_object.code)['rate']} USD/{currency_object.code}"
@@ -172,6 +189,8 @@ def help_show() -> None:
     print("buy --currency <currency> --amount <amount>")
     print("sell --currency <currency> --amount <amount>")
     print("get_rate --from_cur <currency> --to_cur <currency>")
+    print("update_rates --source <source>")
+    print("show_rates --currency <currency> --top <number> --base <currency>")
     print("exit")
     print("help")
 
@@ -185,22 +204,28 @@ def update_rates(source: str | None = None) -> None:
 
 def show_rates(currency: str | None, top: int | None, base: str | None) -> None:
     rates = get_exchange_rates()
+    currency = currency.upper() if currency else None
+    base = base.upper() if base else None
 
     if currency and top:
         raise ValueError("You can't use --currency and --top together")
 
     if currency:
-        rate = get_cur_rate(currency.upper(), base.upper())
+        rate = get_cur_rate(currency, base)
         print(
             f"Курс {currency}→{base or settings.default_base_currency}: {rate['rate']} ({rate['updated_at']})"
         )
+        if datetime.datetime.now() - datetime.datetime.strptime(
+            rate["updated_at"], "%Y-%m-%d %H:%M:%S"
+        ) > datetime.timedelta(seconds=settings.rates_ttl_seconds):
+            print("Курс устарел, обновите курсы с помощью команды update_rates")
+        return
 
     if top:
-        # TODO: FIX THIS PIECE OF CRAP
-        rates = sorted(rates.items(), key=lambda x: x[1]["rate"], reverse=True)
+        rates = sorted(rates["pairs"].items(), key=lambda x: x[1]["rate"], reverse=True)
         rates = rates[:top]
+        print(f"Топ-{top} курсов по курсу {base or settings.default_base_currency}:")
         print(
-            f"Топ-{top} курсов по курсу {base or settings.default_base_currency}:"
             "\n".join(
                 [
                     f"{pair.split('_')[0]}→{base or settings.default_base_currency}:"
@@ -209,15 +234,28 @@ def show_rates(currency: str | None, top: int | None, base: str | None) -> None:
                 ]
             )
         )
+        for pair, rate in rates:
+            if datetime.datetime.now() - datetime.datetime.strptime(
+                rate["updated_at"], "%Y-%m-%d %H:%M:%S"
+            ) > datetime.timedelta(seconds=settings.rates_ttl_seconds):
+                print("Один или больше курсов устарели, обновите курсы с помощью команды update_rates")
+                return
+        return
 
     if not currency and not top:
-        # TODO: FIX THIS PIECE OF CRAP
         print(
             "\n".join(
                 [
                     f"{pair.split('_')[0]}→{base or settings.default_base_currency}:"
                     f" {get_cur_rate(pair.split('_')[0], base)['rate']} ({rate['updated_at']})"
-                    for pair, rate in rates.items()
+                    for pair, rate in rates["pairs"].items()
                 ]
             )
-        )#
+        )
+        for pair, rate in rates["pairs"].items():
+            if datetime.datetime.now() - datetime.datetime.strptime(
+                rate["updated_at"], "%Y-%m-%d %H:%M:%S"
+            ) > datetime.timedelta(seconds=settings.rates_ttl_seconds):
+                print("Один или больше курсов устарели, обновите курсы с помощью команды update_rates")
+                return
+        return

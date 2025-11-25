@@ -48,12 +48,15 @@ class CryptoCurrency(Currency):
 def get_currencies() -> dict:
     currencies = {}
     er = get_exchange_rates()
-    for rate in er["pairs"]:
-        currencies[rate.split("_")[0]] = (
-            FiatCurrency(rate.split("_")[0], rate.split("_")[0], "Unknown")
-            if er["pairs"][rate]["source"] == "exchange_rates"
-            else CryptoCurrency(rate.split("_")[0], rate.split("_")[0], "Unknown", -1)
-        )
+    try:
+        for rate in er["pairs"]:
+            currencies[rate.split("_")[0]] = (
+                FiatCurrency(rate.split("_")[0], rate.split("_")[0], "Unknown")
+                if er["pairs"][rate]["source"] == "exchange_rates"
+                else CryptoCurrency(rate.split("_")[0], rate.split("_")[0], "Unknown", -1)
+            )
+    except KeyError as e:
+        raise ApiRequestError(f"Курс для {e} не найден в кеше.")
     return currencies
 
 
@@ -74,22 +77,26 @@ def get_exchange_rates() -> dict:
             exchange_rates = json.load(f)
         return exchange_rates
     except FileNotFoundError:
-        raise ApiRequestError("Exchange rates not found")
+        raise ValueError("Локальный кеш курсов пуст. Выполните 'update_rates', чтобы загрузить данные.")
+    except json.decoder.JSONDecodeError:
+        raise ValueError("Локальный кеш курсов пуст. Выполните 'update_rates', чтобы загрузить данные.")
 
 
 def get_cur_rate(currency: str, base: str | None = None) -> dict:
     exchange_rates = get_exchange_rates()
-    return {
-        "rate": exchange(currency, base or settings.default_base_currency, 1),
-        "updated_at": exchange_rates["pairs"][
-            f"{currency}_{settings.default_base_currency}"
-        ]["updated_at"],
-    }
+    try:
+        return {
+            "rate": exchange(currency, base or settings.default_base_currency, 1),
+            "updated_at": exchange_rates["pairs"][
+                f"{currency}_{settings.default_base_currency}"
+            ]["updated_at"],
+        }
+    except KeyError as e:
+        raise ValueError(f"Курс для {e} не найден в кеше.")
 
 
 def exchange(from_currency: str, to_currency: str, amount: float) -> float:
     exchange_rates = get_exchange_rates()
-    # TODO: FIX HERE
     return (
         amount
         * exchange_rates["pairs"][f"{from_currency}_{settings.default_base_currency}"][
