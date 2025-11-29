@@ -1,18 +1,28 @@
-from .config import ParserConfig
-from .api_clients import CoinGeckoClient, ExchangeratesApiClient
-from .storage import save_rates
 from datetime import datetime
 from time import time
+
 from ..core.exceptions import ApiRequestError
+from .api_clients import CoinGeckoClient, ExchangeratesApiClient
+from .config import ParserConfig
+from .storage import save_rates
+
 config = ParserConfig()
 
 
 class RatesUpdater:
+    """
+    Class for updating rates
+    """
     def __init__(self):
         self.coingecko_client = CoinGeckoClient()
         self.exchangerates_client = ExchangeratesApiClient(config.exchangerates_api_key)
 
     def run_update(self, source: str | None = None):
+        """
+        Update rates in cache
+        :param source: source of rates
+        :return: None
+        """
         before = time()
         errors = []
         if source == "coin_gecko" or source is None:

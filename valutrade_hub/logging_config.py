@@ -4,6 +4,9 @@ settings = SettingsLoader("data/config.json")
 
 
 class LoggingConfig:
+    """
+    Logging configuration
+    """
     def __init__(self):
         self.log_path = settings.log_path
         self.format = settings.log_format

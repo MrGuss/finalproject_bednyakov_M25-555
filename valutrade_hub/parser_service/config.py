@@ -10,7 +10,7 @@ class ParserConfig:
         self.coingecko_api_url = "https://api.coingecko.com/api/v3/simple/"
         self.exchangerates_api_url = "https://v6.exchangerate-api.com/v6"
 
-        self.FIAT_CURRENCIES = ["USD", "EUR", "RUB"]
+        self.FIAT_CURRENCIES = ["USD", "EUR", "RUB", "CZK"]
         self.CRYPTO_CURRENCIES = ["BTC", "ETH", "XMR"]
         self.CRYPTO_ID_MAP = {
             "BTC": "bitcoin",

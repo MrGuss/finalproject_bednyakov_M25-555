@@ -1,8 +1,11 @@
-from typing import Any
 import json
+from typing import Any
 
 
 class SettingsLoader:
+    """
+    Settings loader singleton
+    """
     _instance = None
 
     def __new__(cls, *args, **kwargs):

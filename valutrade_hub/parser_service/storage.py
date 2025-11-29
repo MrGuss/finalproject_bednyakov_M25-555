@@ -1,19 +1,33 @@
-from .config import ParserConfig
-from datetime import datetime
 import json
+from datetime import datetime
+
+from .config import ParserConfig
+
 config = ParserConfig()
 
 
 def save_rates(rates: dict, request_s: float):
+    """
+    Save rates to file
+    :param rates: dict of rates
+    :param request_s: request time
+    :return: None
+    """
     try:
         with open(f"{config.rates_path}", "r") as f:
             rates_json_old = json.load(f)
     except FileNotFoundError:
         print("File not found")
-        rates_json_old = {"pairs": {}, "last_refresh": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        rates_json_old = {
+            "pairs": {},
+            "last_refresh": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
     except json.JSONDecodeError:
         print("File not found")
-        rates_json_old = {"pairs": {}, "last_refresh": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        rates_json_old = {
+            "pairs": {},
+            "last_refresh": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
     rates_json = {
         "pairs": rates,
@@ -42,8 +56,12 @@ def save_rates(rates: dict, request_s: float):
             "timestamp": value["updated_at"],
             "source": value["source"],
             "meta": {
-                "raw_id": key.split("_")[0] if value["source"] == "exchange_rates" else config.CRYPTO_ID_MAP[key.split("_")[0]],
-                "request_ms": request_s*1000,
+                "raw_id": (
+                    key.split("_")[0]
+                    if value["source"] == "exchange_rates"
+                    else config.CRYPTO_ID_MAP[key.split("_")[0]]
+                ),
+                "request_ms": request_s * 1000,
             },
         }
         for key, value in rates.items()
@@ -51,4 +69,4 @@ def save_rates(rates: dict, request_s: float):
     exchange_rates_json_old += exchange_rates_json
     with open(f"{config.exchange_path}", "w") as f:
         json.dump(exchange_rates_json_old, f, sort_keys=False, indent=2)
-        f.write('\n')
+        f.write("\n")
