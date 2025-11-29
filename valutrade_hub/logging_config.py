@@ -4,9 +4,12 @@ settings = SettingsLoader("data/config.json")
 
 
 class LoggingConfig:
+    """
+    Logging configuration
+    """
     def __init__(self):
         self.log_path = settings.log_path
         self.format = settings.log_format
         self.level = settings.log_level
         self.rotation = settings.log_rotation_size
-        self.mask_keywords = ["password", "salt", "hash"]
+        self.mask_keywords = settings.mask_keywords

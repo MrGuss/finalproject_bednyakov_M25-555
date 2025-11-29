@@ -1,4 +1,7 @@
 class InsufficientFundsError(Exception):
+    """
+    Exception for insufficient funds of user wallet
+    """
     def __init__(
         self,
         available_funds: float,
@@ -16,6 +19,9 @@ class InsufficientFundsError(Exception):
 
 
 class CurrencyNotFoundError(Exception):
+    """
+    Exception for currency not found in cache
+    """
     def __init__(self, code: str, msg="Неизвестная валюта '{code}'"):
         self.msg = msg.format(code=code)
         super().__init__(self.msg)
@@ -25,6 +31,9 @@ class CurrencyNotFoundError(Exception):
 
 
 class ApiRequestError(Exception):
+    """
+    Exception for api request error
+    """
     def __init__(self, reason: str, msg="API: {reason}"):
         self.msg = msg.format(reason=reason)
         super().__init__(self.msg)
