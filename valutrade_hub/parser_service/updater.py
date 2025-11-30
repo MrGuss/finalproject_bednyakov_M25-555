@@ -1,5 +1,6 @@
 from datetime import datetime
 from time import time
+from typing import Optional
 
 from ..core.exceptions import ApiRequestError
 from .api_clients import CoinGeckoClient, ExchangeratesApiClient
@@ -17,7 +18,7 @@ class RatesUpdater:
         self.coingecko_client = CoinGeckoClient()
         self.exchangerates_client = ExchangeratesApiClient(config.exchangerates_api_key)
 
-    def run_update(self, source: str | None = None):
+    def run_update(self, source: Optional[str] = None):
         """
         Update rates in cache
         :param source: source of rates

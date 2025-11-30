@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from ..infra.settings import SettingsLoader
 from .exceptions import ApiRequestError, CurrencyNotFoundError
@@ -73,7 +74,7 @@ def get_currencies() -> dict:
     return currencies
 
 
-def get_currency(code: str | None) -> Currency:
+def get_currency(code: Optional[str]) -> Currency:
     """
     Get currency by code
     :param code: code of currency
@@ -104,7 +105,7 @@ def get_exchange_rates() -> dict:
         raise ValueError("Локальный кеш курсов пуст. Выполните 'update_rates', чтобы загрузить данные.")
 
 
-def get_cur_rate(currency: str, base: str | None = None) -> dict:
+def get_cur_rate(currency: str, base: Optional[str] = None) -> dict:
     """
     Get currency rate from cache
     :param currency: currency code
