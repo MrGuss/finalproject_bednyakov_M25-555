@@ -1,6 +1,7 @@
 import datetime
 import string
 from random import choice
+from typing import Optional
 
 from valutrade_hub.core.exceptions import InsufficientFundsError
 
@@ -77,7 +78,7 @@ def login(username: str, password: str) -> None:
     raise ValueError("Invalid username or password")
 
 
-def show_portfolio(base_currency: str | None = None) -> None:
+def show_portfolio(base_currency: Optional[str] = None) -> None:
     """
     Show portfolio of current user
     :param base_currency: base currency
@@ -239,7 +240,7 @@ def help_show() -> None:
     print("help")
 
 
-def update_rates(source: str | None = None) -> None:
+def update_rates(source: Optional[str] = None) -> None:
     """
     Update rates in cache
     :param source: source of rates
@@ -251,7 +252,7 @@ def update_rates(source: str | None = None) -> None:
     print("Rates updated")
 
 
-def show_rates(currency: str | None, top: int | None, base: str | None) -> None:
+def show_rates(currency: Optional[str], top: Optional[int], base: Optional[str]) -> None:
     """
     Show rates from last update of cache
     :param currency: currency code

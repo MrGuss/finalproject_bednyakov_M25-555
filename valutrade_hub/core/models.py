@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import datetime
 from hashlib import sha256
+from typing import Optional
 
 from .exceptions import InsufficientFundsError
 
@@ -18,9 +19,9 @@ class User:
         self,
         user_id: int,
         username: str,
-        registration_date: str | None = None,
-        hashed_password: str | None = None,
-        salt: str | None = None,
+        registration_date: Optional[str] = None,
+        hashed_password: Optional[str] = None,
+        salt: Optional[str] = None,
     ):
         self._user_id = user_id
         self._username = username
